@@ -177,9 +177,10 @@ end)
 makeButton("Open Discord", function()
     local opened = openUrlInBrowser(appealUrl)
     if opened then
-        notify("Discord", "We opened your browser with the invite.")
+        notify("Discord", "Browser opened with the invite.")
+        dismissOverlayAfter(2)
     else
-        notify("Discord", "Browser open blocked - use the copied invite.")
+        notify("Discord", "Open blocked - copy the link instead.")
     end
 end)
 
@@ -193,15 +194,4 @@ footer.Size = UDim2.new(1, -20, 0, 24)
 footer.Position = UDim2.new(0, 10, 1, -28)
 footer.Parent = container
 
-local copiedAuto = setClipboardSafe(appealUrl)
-if copiedAuto then
-    notify("SorinHub", "Appeal link copied to your clipboard.")
-    dismissOverlayAfter(2)
-end
-
-task.delay(0.5, function()
-    local opened = openUrlInBrowser(appealUrl)
-    if not opened then
-        warn("[SorinHub] Unable to open browser automatically. Invite link is on your clipboard.")
-    end
-end)
+-- No automatic clipboard or browser actions; user triggers buttons instead.
