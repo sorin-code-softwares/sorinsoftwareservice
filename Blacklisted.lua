@@ -76,7 +76,18 @@ end
 
 local formattedTimestamp = formatTimestamp(timestamp)
 
-local screenGui = Instance.new("ScreenGui")
+local screenGui
+
+local function dismissOverlayAfter(delaySeconds)
+    task.delay(delaySeconds or 2, function()
+        if screenGui then
+            screenGui:Destroy()
+            screenGui = nil
+        end
+    end)
+end
+
+screenGui = Instance.new("ScreenGui")
 screenGui.Name = "SorinBlacklistNotice"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = CoreGui
@@ -157,6 +168,7 @@ makeButton("Copy Discord Link", function()
     local copied = setClipboardSafe(appealUrl)
     if copied then
         notify("Copied", "Invite link copied to your clipboard.")
+        dismissOverlayAfter(2)
     else
         notify("Clipboard", "Copy failed - please copy manually: " .. appealUrl)
     end
@@ -184,6 +196,7 @@ footer.Parent = container
 local copiedAuto = setClipboardSafe(appealUrl)
 if copiedAuto then
     notify("SorinHub", "Appeal link copied to your clipboard.")
+    dismissOverlayAfter(2)
 end
 
 task.delay(0.5, function()
