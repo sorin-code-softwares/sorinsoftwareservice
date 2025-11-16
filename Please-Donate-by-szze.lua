@@ -594,16 +594,16 @@ function updateBoothText()
     end
 
     local basePayload = {
-        textFont         = Enum.Font[settings.fontFace],
-        richText         = true,
-        strokeColor      = Color3.new(0, 0, 0),
-        strokeOpacity    = 0,
-        textColor        = rgb(settings.hexBox),
-        buttonStrokeColor= Color3.new(0, 0, 0),
-        buttonTextColor  = Color3.new(1, 1, 1),
-        buttonColor      = Color3.new(98, 255, 0),
-        buttonHoverColor = Color3.new(98, 255, 0),
-        buttonLayout     = ""
+        textFont          = Enum.Font[settings.fontFace],
+        richText          = true,
+        strokeColor       = Color3.new(0, 0, 0),
+        strokeOpacity     = 0,
+        textColor         = rgb(settings.hexBox),
+        buttonStrokeColor = Color3.new(0, 0, 0),
+        buttonTextColor   = Color3.new(0, 0, 0),
+        buttonColor       = Color3.fromRGB(180, 120, 255),
+        buttonHoverColor  = Color3.fromRGB(140, 80, 230),
+        buttonLayout      = ""
     }
     basePayload.text = text
     Remotes.Event("SetCustomization"):FireServer(basePayload, "booth")
@@ -1627,22 +1627,28 @@ Players.LocalPlayer.leaderstats.Raised.Changed:Connect(function()
     local raisedValue = Players.LocalPlayer.leaderstats.Raised.Value
     local raised = raisedValue - RaisedC
     local effectJump, effectLap, effectSong = false, false, false
+    local jumpTier = tonumber(getgenv().settings.tierJumpThreshold) or 1
+    local lapTier = tonumber(getgenv().settings.tierLapThreshold) or 5
+    local songTier = tonumber(getgenv().settings.tierSongThreshold) or 10
     local tierEnabled = getgenv().settings.tierSystemEnabled
     if tierEnabled then
-        local jumpTier = tonumber(getgenv().settings.tierJumpThreshold) or 1
-        local lapTier = tonumber(getgenv().settings.tierLapThreshold) or 5
-        local songTier = tonumber(getgenv().settings.tierSongThreshold) or 10
-        if raised >= songTier then
+        if raised >= songTier and getgenv().settings.highlightSwitch then
             effectSong = true
-        elseif raised >= lapTier then
+        elseif raised >= lapTier and getgenv().settings.robuxLap then
             effectLap = true
-        elseif raised >= jumpTier then
+        elseif raised >= jumpTier and getgenv().settings.donationJump then
             effectJump = true
         end
     else
-        effectJump = getgenv().settings.donationJump
-        effectLap = getgenv().settings.robuxLap
-        effectSong = getgenv().settings.highlightSwitch
+        if getgenv().settings.donationJump and raised >= jumpTier then
+            effectJump = true
+        end
+        if getgenv().settings.robuxLap and raised >= lapTier then
+            effectLap = true
+        end
+        if getgenv().settings.highlightSwitch and raised >= songTier then
+            effectSong = true
+        end
     end
 	hopSet()
 	if Players.LocalPlayer.Character:FindFirstChildWhichIsA('Humanoid').RootPart:FindFirstChild('Spin') and getgenv().settings.spinSet then
@@ -1737,7 +1743,7 @@ Players.LocalPlayer.leaderstats.Raised.Changed:Connect(function()
 			Players:Chat('/e wave')
 	end
 	end)
-	if effectJump and getgenv().settings.donationJump == true and not getgenv().settings.spinSet == true then
+	if effectJump and not getgenv().settings.spinSet == true then
 		djset = true
 		task.spawn(function()
 			if getgenv().settings.jumpsPerRobux == 1 then
@@ -1758,7 +1764,7 @@ Players.LocalPlayer.leaderstats.Raised.Changed:Connect(function()
 			djset = false
 		end)
 	end
-    if effectLap and getgenv().settings.robuxLap then
+    if effectLap then
 		if lapdebounce then
 			return
 		end
@@ -1782,7 +1788,7 @@ Players.LocalPlayer.leaderstats.Raised.Changed:Connect(function()
             lapdebounce = false
         end)
     end
-	if effectSong and getgenv().settings.highlightSwitch then
+	if effectSong then
 		task.spawn(function()
 			_HIGHLIGHTLOADER.HLStart(Players.LocalPlayer.Character, Players.LocalPlayer.leaderstats.Raised.Value - RaisedC, (playerWhoDonated and playerWhoDonated or fetchNearPlr() or nil))
 		end)
