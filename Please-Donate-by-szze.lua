@@ -318,26 +318,36 @@ local sValues = {
 	{
 		'Hi',
 		'Sup',
-		'Hello'
+		'Hello',
+		'Hey',
+		'Yo',
+		'Hi there',
+		'Heya'
 	},
 	{
 		'no im not',
-		'im not a bot'
+		'im not a bot',
+		'im real lol',
+		'just grinding here'
 	},
 	{
 		"sorry im saving",
 		"i am saving for my dream item",
-		"sorry my robux is pending"
+		"sorry my robux is pending",
+		"cant donate right now, maybe later"
 	},
 	{
 		"..?",
 		"what",
-		"?"
+		"?",
+		"huh",
+		"idk"
 	},
 	{
 		"im no scam",
 		"im not a scammer",
-		"this is not a scam"
+		"this is not a scam",
+		"everything here is legit"
 	},
 	false,
 	1000,
@@ -567,9 +577,9 @@ local function formatNumber(n)
     end
 end
 
-function updateBoothText()
+function updateBoothText(force)
     local settings = getgenv().settings
-    if not (settings.textUpdateToggle and settings.customBoothText) then
+    if not force and not (settings.textUpdateToggle and settings.customBoothText) then
         return
     end
 
@@ -686,7 +696,7 @@ local function updateModeTexts()
         settings.begMessage = begMessages
     end
     saveSettings()
-    updateBoothText()
+    updateBoothText(true)
 end
 
 local _TTSERVICE = cloneref(game:GetService('TextChatService'))
@@ -1995,33 +2005,16 @@ end
 
 local messagesToResp = {
 	['Greetings'] = {
-		'hi',
-		'hello',
-		'hey',
-		'sup',
-		'yo',
-		'howdy',
-		'sup bro',
-		'sup dude',
-		'hai',
-		'hii',
-		'hey man',
-		'hiya',
-		'heyy',
-		'hello man',
-		'hello dude',
-		'hi bro',
-		'hi sup',
-		'hiey',
-		'👋',
-		'hey hello',
-		'sup hi'
+		'hi','hello','hey','sup','yo','howdy','hai','hii','hiya','heyy',
+		'hello man','hello dude','hi bro','hi sup','hiey','👋','hey hello',
+		'sup hi','hi there','yo bro','hey bro','hey guys'
 	},
 }
 
 Players.PlayerChatted:Connect(function(_____________________, player, message)
 	local speaker = tostring(player)
 	local message = string.lower(message)
+	local clean = message:gsub("[^%w%s]", "")
 	task.wait(2.1 + math.random())
 	local plrChatted = Players:FindFirstChild(speaker)
 	if (plrChatted and plrChatted == Players.LocalPlayer) or getgenv().settings.autoNearReply == false or not plrChatted  or string.find(message, 'donates') or string.find(message, "spamming") then
@@ -2036,16 +2029,16 @@ Players.PlayerChatted:Connect(function(_____________________, player, message)
 		if (plrChatted.Character and plrChatted.Character.Humanoid.RootPart) then
 			local root = chatChar.Humanoid.RootPart
 			if (root.Position - Players.LocalPlayer.Character.Humanoid.RootPart.Position).Magnitude < 11 then
-				if table.find(messagesToResp.Greetings,message) then
+				if table.find(messagesToResp.Greetings, clean) then
 					chat(getgenv().settings.helloResponce[math.random(1, #getgenv().settings.helloResponce)])
-				elseif string.find(message, 'bot') then
+				elseif message:find('bot') or message:find('macro') or message:find('script') or message:find('auto') then
 					mchat(getgenv().settings.botResponce[math.random(1, #getgenv().settings.botResponce)])
-				elseif string.find(message, 'donate') then
+				elseif message:find('donate') or message:find('pls donate') or message:find('plz donate') or message:find('give me robux') or message:find('rbx') then
 					chat(getgenv().settings.donateResponce[math.random(1, #getgenv().settings.donateResponce)])
-				elseif string.find(message, 'scam') then
+				elseif message:find('scam') or message:find('fake') or message:find('not real') or message:find('scammer') then
 					chat(getgenv().settings.scamResponce[math.random(1, #getgenv().settings.scamResponce)])
 				else
-				        if not getgenv().autoReplyNoRespond then
+				        if not getgenv().settings.autoReplyNoRespond then
 					       chat(getgenv().settings.otherResponce[math.random(1, #getgenv().settings.otherResponce)])
 					end
 				end
