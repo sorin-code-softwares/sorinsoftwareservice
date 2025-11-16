@@ -251,7 +251,11 @@ local sNames = {
 	'friendHop',
 	'autoReplyNoRespond',
 	'antiBotServers',
-    'robuxLap'
+    'robuxLap',
+    'tierSystemEnabled',
+    'tierJumpThreshold',
+    'tierLapThreshold',
+    'tierSongThreshold',
 }
 
 local positionX = (Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()):WaitForChild('HumanoidRootPart').Position
@@ -346,7 +350,11 @@ local sValues = {
 	true,
 	false,
 	false,
-    false
+    false,
+    false,
+    1,
+    5,
+    10,
 }
 
   --Load Settings
@@ -753,7 +761,7 @@ local easterlol = {
 
 local easterclr = easterlol[math.random(1,#easterlol)]
 
-local Window = library:AddWindow("<3 // @szze",
+local Window = library:AddWindow("<3 // @szze x SorinSoftware Services Remake",
   {
 	main_color = easterclr,
 	min_size = Vector2.new(560, 563),
@@ -1224,6 +1232,15 @@ end)
 
 _HLTOGGLE:Set(getgenv().settings.highlightSwitch)
 
+local tierToggle = mainTab:AddSwitch('Use Donation Tiers', function(bool)
+	if settingsLock then
+		return
+	end
+	getgenv().settings.tierSystemEnabled = bool
+	saveSettings()
+end)
+tierToggle:Set(getgenv().settings.tierSystemEnabled)
+
 local autoReply = otherTab2:AddSwitch("Auto Reply [AR]", function(bool)
 	if settingsLock then
 		return
@@ -1332,6 +1349,33 @@ end)
 lapToggle:Set(getgenv().settings.robuxLap)
 heliToggle:Set(getgenv().settings.helicopterEnabled)
 mainTab:AddLabel("-----------------------")
+
+local tierJumpBox = mainTab:AddTextBox("Tier: Jump at (R$)", function(text)
+	if settingsLock or not tonumber(text) then
+		return
+	end
+	getgenv().settings.tierJumpThreshold = tonumber(text)
+	saveSettings()
+end, { ["clear"] = false })
+tierJumpBox.Text = 'Jump Tier: ' .. tostring(getgenv().settings.tierJumpThreshold) .. ' R$'
+
+local tierLapBox = mainTab:AddTextBox("Tier: Lap at (R$)", function(text)
+	if settingsLock or not tonumber(text) then
+		return
+	end
+	getgenv().settings.tierLapThreshold = tonumber(text)
+	saveSettings()
+end, { ["clear"] = false })
+tierLapBox.Text = 'Lap Tier: ' .. tostring(getgenv().settings.tierLapThreshold) .. ' R$'
+
+local tierSongBox = mainTab:AddTextBox("Tier: Song at (R$)", function(text)
+	if settingsLock or not tonumber(text) then
+		return
+	end
+	getgenv().settings.tierSongThreshold = tonumber(text)
+	saveSettings()
+end, { ["clear"] = false })
+tierSongBox.Text = 'Song Tier: ' .. tostring(getgenv().settings.tierSongThreshold) .. ' R$'
 
 local jumpsPerRB = mainTab:AddTextBox("Jumps Per Robux", function(text)
 	if settingsLock or not tonumber(text) then
@@ -1582,6 +1626,24 @@ Players.LocalPlayer.leaderstats.Raised.Changed:Connect(function()
 	sgoalR = sgoalR + (Players.LocalPlayer.leaderstats.Raised.Value - RaisedC)
     local raisedValue = Players.LocalPlayer.leaderstats.Raised.Value
     local raised = raisedValue - RaisedC
+    local effectJump, effectLap, effectSong = false, false, false
+    local tierEnabled = getgenv().settings.tierSystemEnabled
+    if tierEnabled then
+        local jumpTier = tonumber(getgenv().settings.tierJumpThreshold) or 1
+        local lapTier = tonumber(getgenv().settings.tierLapThreshold) or 5
+        local songTier = tonumber(getgenv().settings.tierSongThreshold) or 10
+        if raised >= songTier then
+            effectSong = true
+        elseif raised >= lapTier then
+            effectLap = true
+        elseif raised >= jumpTier then
+            effectJump = true
+        end
+    else
+        effectJump = getgenv().settings.donationJump
+        effectLap = getgenv().settings.robuxLap
+        effectSong = getgenv().settings.highlightSwitch
+    end
 	hopSet()
 	if Players.LocalPlayer.Character:FindFirstChildWhichIsA('Humanoid').RootPart:FindFirstChild('Spin') and getgenv().settings.spinSet then
 		local humanoid = Players.LocalPlayer.Character:FindFirstChildWhichIsA('Humanoid')
@@ -1673,9 +1735,9 @@ Players.LocalPlayer.leaderstats.Raised.Changed:Connect(function()
 			_TWN4:Play()
 			helidebounce = false
 			Players:Chat('/e wave')
-		end
+	end
 	end)
-	if getgenv().settings.donationJump == true and not getgenv().settings.spinSet == true and not getgenv().settings.highlightSwitch then
+	if effectJump and getgenv().settings.donationJump == true and not getgenv().settings.spinSet == true then
 		djset = true
 		task.spawn(function()
 			if getgenv().settings.jumpsPerRobux == 1 then
@@ -1696,15 +1758,13 @@ Players.LocalPlayer.leaderstats.Raised.Changed:Connect(function()
 			djset = false
 		end)
 	end
-    if getgenv().settings.robuxLap then
+    if effectLap and getgenv().settings.robuxLap then
 		if lapdebounce then
 			return
 		end
         lapdebounce = true
         task.spawn(function()
-            twn(Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').RootPart,TweenInfo.new(5,Enum.EasingStyle.Linear,Enum.EasingDirection.In),{CFrame = CFrame.new(166.584, 3.47699, 371.398)}):Play()
             Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').WalkSpeed = 50
-            task.wait(6)
             for _i = 1, raised do
                 for i,v in next, _CFRAMETABLE do
                     local con
@@ -1722,7 +1782,7 @@ Players.LocalPlayer.leaderstats.Raised.Changed:Connect(function()
             lapdebounce = false
         end)
     end
-	if getgenv().settings.highlightSwitch then
+	if effectSong and getgenv().settings.highlightSwitch then
 		task.spawn(function()
 			_HIGHLIGHTLOADER.HLStart(Players.LocalPlayer.Character, Players.LocalPlayer.leaderstats.Raised.Value - RaisedC, (playerWhoDonated and playerWhoDonated or fetchNearPlr() or nil))
 		end)
