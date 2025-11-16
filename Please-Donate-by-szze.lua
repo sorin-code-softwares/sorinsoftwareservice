@@ -2033,7 +2033,19 @@ Players.PlayerChatted:Connect(function(_____________________, player, message)
 					chat(getgenv().settings.helloResponce[math.random(1, #getgenv().settings.helloResponce)])
 				elseif message:find('bot') or message:find('macro') or message:find('script') or message:find('auto') then
 					mchat(getgenv().settings.botResponce[math.random(1, #getgenv().settings.botResponce)])
-				elseif message:find('donate') or message:find('pls donate') or message:find('plz donate') or message:find('give me robux') or message:find('rbx') then
+				elseif message:find('donate')
+				    or message:find('pls donate')
+				    or message:find('plz donate')
+				    or message:find('spende')
+				    or message:find('spendier')
+				    or message:find('dona')
+				    or message:find('donar')
+				    or message:find('doname')
+				    or message:find('regala')
+				    or message:find('regalame')
+				    or message:find('give me robux')
+				    or message:find('robux')
+				    or message:find('rbx') then
 					chat(getgenv().settings.donateResponce[math.random(1, #getgenv().settings.donateResponce)])
 				elseif message:find('scam') or message:find('fake') or message:find('not real') or message:find('scammer') then
 					chat(getgenv().settings.scamResponce[math.random(1, #getgenv().settings.scamResponce)])
