@@ -142,6 +142,7 @@ local httpservice = HttpService
 if queueonteleport then
 	queueonteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/sorin-code-softwares/sorinsoftwareservice/refs/heads/main/Please-Donate-by-szze.lua'))()")
 end
+local jumpswitch, _HLTOGGLE, lapToggle, tierToggle
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/CF-Trail/tzechco-PlsDonateAutofarmBackup/main/UI"))()
 local _HIGHLIGHTLOADER
 pcall(function()
@@ -422,6 +423,7 @@ else
 end
 
 local function choosePlaceId()
+    local settings = getgenv().settings
     if vcEnabled and settings.vcServer then
         return 8943844393
     elseif settings.AlternativeHop then
@@ -566,6 +568,7 @@ local function formatNumber(n)
 end
 
 function updateBoothText()
+    local settings = getgenv().settings
     if not (settings.textUpdateToggle and settings.customBoothText) then
         return
     end
@@ -607,6 +610,83 @@ function updateBoothText()
     }
     basePayload.text = text
     Remotes.Event("SetCustomization"):FireServer(basePayload, "booth")
+end
+
+local function getCurrentMode()
+    local settings = getgenv().settings
+    local tierEnabled = settings.tierSystemEnabled
+    local jumpTier = tonumber(settings.tierJumpThreshold) or 1
+    local lapTier = tonumber(settings.tierLapThreshold) or 5
+    local songTier = tonumber(settings.tierSongThreshold) or 10
+    local mode, bestTier
+
+    if tierEnabled then
+        if settings.donationJump then
+            mode, bestTier = "jump", jumpTier
+        end
+        if settings.robuxLap and (not bestTier or lapTier < bestTier) then
+            mode, bestTier = "lap", lapTier
+        end
+        if settings.highlightSwitch and (not bestTier or songTier < bestTier) then
+            mode, bestTier = "song", songTier
+        end
+        return mode
+    else
+        if settings.donationJump then
+            return "jump"
+        elseif settings.robuxLap then
+            return "lap"
+        elseif settings.highlightSwitch then
+            return "song"
+        end
+    end
+end
+
+local function updateModeTexts()
+    local settings = getgenv().settings
+    local mode = getCurrentMode()
+    if not mode then
+        return
+    end
+
+    local jumpTier = tonumber(settings.tierJumpThreshold) or 1
+    local lapTier = tonumber(settings.tierLapThreshold) or 5
+    local songTier = tonumber(settings.tierSongThreshold) or 10
+
+    local boothText
+    local begMessages
+
+    if mode == "jump" then
+        boothText = string.format("%dR$ = jump reward! Donate to make me move ✨", jumpTier)
+        begMessages = {
+            string.format("Donate %dR$ and I will jump!", jumpTier),
+            string.format("Every %dR$ makes me jump 🤸", jumpTier),
+            string.format("%dR$ and I spam jumps for you!", jumpTier)
+        }
+    elseif mode == "lap" then
+        boothText = string.format("%dR$ = 1 lap across the map 🏃", lapTier)
+        begMessages = {
+            string.format("Donate %dR$ and I run a lap!", lapTier),
+            string.format("For %dR$ I run around the map!", lapTier),
+            string.format("%dR$ = 1 full lap, try me 👟", lapTier)
+        }
+    elseif mode == "song" then
+        boothText = string.format("%dR$ = I sing your song 🎵 (type >lyrics)", songTier)
+        begMessages = {
+            string.format("Donate %dR$ and request a song with >lyrics!", songTier),
+            string.format("%dR$ = I sing the lyrics of your choice 🎶", songTier),
+            string.format("For %dR$ I become your lyrics bot, use >lyrics", songTier)
+        }
+    end
+
+    if boothText then
+        settings.customBoothText = boothText
+    end
+    if begMessages then
+        settings.begMessage = begMessages
+    end
+    saveSettings()
+    updateBoothText()
 end
 
 local _TTSERVICE = cloneref(game:GetService('TextChatService'))
@@ -1210,17 +1290,30 @@ if getgenv().settings.AnonymousMode then
 	end)
 end
 
-local jumpswitch = mainTab:AddSwitch("Donation Jump", function(bool)
+jumpswitch = mainTab:AddSwitch("Donation Jump", function(bool)
 	if settingsLock then
 		return
 	end
 	getgenv().settings.donationJump = bool
+	if bool and not getgenv().settings.tierSystemEnabled then
+		getgenv().settings.robuxLap = false
+		getgenv().settings.highlightSwitch = false
+		if lapToggle then lapToggle:Set(false) end
+		if _HLTOGGLE then _HLTOGGLE:Set(false) end
+	end
 	saveSettings()
+	updateModeTexts()
 end)
 jumpswitch:Set(getgenv().settings.donationJump)
 
-local _HLTOGGLE = mainTab:AddSwitch('Sing a donator\'s choice song on donation', function(bool)
+_HLTOGGLE = mainTab:AddSwitch('Sing a donator\'s choice song on donation', function(bool)
 	getgenv().settings.highlightSwitch = bool
+	if bool and not getgenv().settings.tierSystemEnabled then
+		getgenv().settings.donationJump = false
+		getgenv().settings.robuxLap   = false
+		if jumpswitch then jumpswitch:Set(false) end
+		if lapToggle then lapToggle:Set(false) end
+	end
 	pcall(function()
 	     if bool then
 		    _HIGHLIGHTLOADER.HLSetup(Players.LocalPlayer.Character)
@@ -1228,11 +1321,12 @@ local _HLTOGGLE = mainTab:AddSwitch('Sing a donator\'s choice song on donation',
 	        _HIGHLIGHTLOADER.HLUnload(Players.LocalPlayer.Character)
 	     end
 	end)
+	updateModeTexts()
 end)
 
 _HLTOGGLE:Set(getgenv().settings.highlightSwitch)
 
-local tierToggle = mainTab:AddSwitch('Use Donation Tiers', function(bool)
+tierToggle = mainTab:AddSwitch('Use Donation Tiers', function(bool)
 	if settingsLock then
 		return
 	end
@@ -1338,12 +1432,19 @@ local heliToggle = mainTab:AddSwitch('Helicopter On-Donation', function(bool)
 	saveSettings()
 end)
 
-local lapToggle = mainTab:AddSwitch('1R$ = 1 lap across the map', function(bool)
+lapToggle = mainTab:AddSwitch('1R$ = 1 lap across the map', function(bool)
     if settingsLock then
         return
     end
     getgenv().settings.robuxLap = bool
+    if bool and not getgenv().settings.tierSystemEnabled then
+        getgenv().settings.donationJump   = false
+        getgenv().settings.highlightSwitch = false
+        if jumpswitch then jumpswitch:Set(false) end
+        if _HLTOGGLE then _HLTOGGLE:Set(false) end
+    end
     saveSettings()
+    updateModeTexts()
 end)
 
 lapToggle:Set(getgenv().settings.robuxLap)
@@ -1351,29 +1452,56 @@ heliToggle:Set(getgenv().settings.helicopterEnabled)
 mainTab:AddLabel("-----------------------")
 
 local tierJumpBox = mainTab:AddTextBox("Tier: Jump at (R$)", function(text)
-	if settingsLock or not tonumber(text) then
+	if settingsLock then
 		return
 	end
-	getgenv().settings.tierJumpThreshold = tonumber(text)
+	local value = tonumber(text)
+	if not value then
+		return
+	end
+	getgenv().settings.tierJumpThreshold = value
+	getgenv().settings.tierSystemEnabled = true
+	getgenv().settings.donationJump = true
+	if tierToggle then tierToggle:Set(true) end
+	if jumpswitch then jumpswitch:Set(true) end
 	saveSettings()
+	updateModeTexts()
 end, { ["clear"] = false })
 tierJumpBox.Text = 'Jump Tier: ' .. tostring(getgenv().settings.tierJumpThreshold) .. ' R$'
 
 local tierLapBox = mainTab:AddTextBox("Tier: Lap at (R$)", function(text)
-	if settingsLock or not tonumber(text) then
+	if settingsLock then
 		return
 	end
-	getgenv().settings.tierLapThreshold = tonumber(text)
+	local value = tonumber(text)
+	if not value then
+		return
+	end
+	getgenv().settings.tierLapThreshold = value
+	getgenv().settings.tierSystemEnabled = true
+	getgenv().settings.robuxLap = true
+	if tierToggle then tierToggle:Set(true) end
+	if lapToggle then lapToggle:Set(true) end
 	saveSettings()
+	updateModeTexts()
 end, { ["clear"] = false })
 tierLapBox.Text = 'Lap Tier: ' .. tostring(getgenv().settings.tierLapThreshold) .. ' R$'
 
 local tierSongBox = mainTab:AddTextBox("Tier: Song at (R$)", function(text)
-	if settingsLock or not tonumber(text) then
+	if settingsLock then
 		return
 	end
-	getgenv().settings.tierSongThreshold = tonumber(text)
+	local value = tonumber(text)
+	if not value then
+		return
+	end
+	getgenv().settings.tierSongThreshold = value
+	getgenv().settings.tierSystemEnabled = true
+	getgenv().settings.highlightSwitch = true
+	if tierToggle then tierToggle:Set(true) end
+	if _HLTOGGLE then _HLTOGGLE:Set(true) end
 	saveSettings()
+	updateModeTexts()
 end, { ["clear"] = false })
 tierSongBox.Text = 'Song Tier: ' .. tostring(getgenv().settings.tierSongThreshold) .. ' R$'
 
